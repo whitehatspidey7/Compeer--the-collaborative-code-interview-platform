@@ -1,0 +1,38 @@
+Project Handoff Prompt
+Project: CoderPad Clone (Real-time Collaborative Code Editor)
+Stack: Next.js 15 (App Router), TypeScript, PostgreSQL, Prisma ORM, Tailwind CSS.
+Current Progress: Week 1 (Foundation).
+
+What is done:
+
+Architecture: Project initialized with src/ directory and custom import aliases (@/* pointing to src/*).
+
+Database: PostgreSQL is connected via Prisma.
+
+Schema: Finalized User, Room, and Participant models in schema.prisma.
+
+Includes Short-term Persistence strategy: Room table has last_saved_content to act as a safety buffer for the editor.
+
+Routing: Created dynamic route /src/app/room/[slug]/page.tsx which correctly fetches room data from the DB using the URL slug.
+
+Status: The database migrations have been run, but no data exists yet.
+
+Where to start next:
+We are ready to build the Room Creation Logic. We need to:
+
+Create the Server Action in src/server/room-actions.ts using nanoid to generate unique slugs.
+
+Build the Dashboard UI in src/app/dashboard/page.tsx with a "Create Room" button.
+
+Authentication: After room creation is functional, we need to implement the JWT-based Auth flow to replace temporary hardcoded User IDs.
+
+Strict Rules: Keep the folder structure modular (Features/Lib/Server) and use Server Components for data fetching.
+
+Quick Tips for your return:
+Check your .env: Make sure your DATABASE_URL is still active.
+
+Run the Studio: When you come back, run npx prisma studio just to refresh your memory on the table structures.
+
+Next step: When you're ready, just tell the AI: "I'm back. Let's write the createRoom server action in src/server/room-actions.ts now."
+
+Would you like me to explain how to "Seed" a test user into your database one last time before you go, so you have data waiting for you when you return?

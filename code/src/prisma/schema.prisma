@@ -1,0 +1,47 @@
+//  Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  passwordHash  String
+  name          String?
+  roomsCreated  Room[]         @relation("CreatedBy")
+  participations Participant[]
+  createdAt     DateTime       @default(now())
+}
+
+model Room {
+  id               String         @id @default(uuid())
+  slug             String         @unique
+  createdById      String
+  createdBy        User           @relation("CreatedBy", fields: [createdById], references: [id])
+  language         String         @default("javascript")
+  
+  // Short-term persistence buffer
+  lastSavedContent String         @default("")
+  lastSavedAt      DateTime       @default(now())
+  
+  isActive         Boolean        @default(true)
+  participants     Participant[]
+  createdAt        DateTime       @default(now())
+}
+
+model Participant {
+  id       String   @id @default(uuid())
+  roomId   String
+  userId   String
+  role     String   // "interviewer" or "candidate"
+  room     Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt DateTime @default(now())
+}
+

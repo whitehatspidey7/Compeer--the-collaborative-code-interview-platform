@@ -1,0 +1,40 @@
+import { PrismaClient } from "@prisma/client";
+import test from "node:test";
+
+const prisma_client = new PrismaClient();
+
+async function Dummy_user()
+{
+     // creating a user if it doesn't exist already.
+    const test_user = await prisma_client.user.upsert({
+        where: {email: "test@email.com"},
+        update: {},
+        create : {
+            email: "spiderman@gmail.com",
+            name: "peter",
+            passwordHash: "12ew3rfgdg4re"
+        }
+    });
+
+     console.log(test_user);
+     console.log("✅ Seeded 1 test user. Use this ID in your dashboard.");
+}
+
+async () => {
+
+    try
+    {
+        await Dummy_user();
+    }
+    catch(e)
+    {
+        console.error("❌ Seeding failed:", e);
+    }
+    finally
+    {
+        await prisma_client.$disconnect(); //  closing the connection
+    }
+}
+   
+
+   
