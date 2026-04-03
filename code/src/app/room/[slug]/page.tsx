@@ -29,7 +29,7 @@ export default async function RoomPage({ params }: PageProps)
     catch(error)
     {
       console.log(error);
-      throw new Error;
+      throw new Error("error encounterd ");
     }
 
   // 3. If the room is null, show the built-in Next.js 404 page

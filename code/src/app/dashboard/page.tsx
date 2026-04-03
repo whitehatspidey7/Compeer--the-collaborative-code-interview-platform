@@ -31,17 +31,18 @@ export default async function Dashboard()
 
     // create an interview-room with the dummy user, use the createRoom
 
-    const createRoomHandler =  async () =>{
-
+    const createRoomHandler =  async (FormData:FormData) =>{
+        "use server"
         try
         {
-            "use server"
-           await createRoom(user.id)
+            const userId = FormData.get("userId") as string;
+            // "use server"
+           await createRoom(userId)
         }
         catch(e)
         {
             console.log(e);
-            throw new Error;
+            throw e;
         }   
     };
 
@@ -51,6 +52,7 @@ export default async function Dashboard()
       
       {/* The form 'action' triggers our function only on click */}
       <form action={createRoomHandler}>
+         <input type="hidden" name="userId" value={user.id} />
         <button className="bg-indigo-600 text-white p-4 rounded">
           Create Room
         </button>
