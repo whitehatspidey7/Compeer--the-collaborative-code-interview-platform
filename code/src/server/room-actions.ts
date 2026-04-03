@@ -34,7 +34,7 @@ export async function createRoom(userId: string)
     catch(error)
     {
         console.log("Failed to create a room! " + error);
-        throw new Error("Database error: Could not create the interview room.");
+        throw error;
     }
 
     //  Redirect the user to the dynamic route: /room/[slug], upon creation of room

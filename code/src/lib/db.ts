@@ -1,4 +1,9 @@
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL!,
+});
 
 // This tells TypeScript that there might be a 'prisma' property on the global object
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
@@ -8,7 +13,7 @@ const globalForPrisma = global as unknown as { prisma: PrismaClient };
 // 3. We log queries in development so you can see the SQL in your terminal.
 export const db =
   globalForPrisma.prisma ||
-  new PrismaClient({
+  new PrismaClient({adapter,
     log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
   });
 
