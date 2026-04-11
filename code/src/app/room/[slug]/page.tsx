@@ -1,13 +1,18 @@
 import { db } from "@/lib/db";
+import CodeEditor from '@/components/Editor/CodeEditor';
 import { notFound } from "next/navigation";
+
 
 // Next.js 15 uses a Promise for params
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
+
+
 export default async function RoomPage({ params }: PageProps) 
 {
+
   // 1. Un-wrap the params to get the slug
   const { slug } = await params;
 
@@ -63,9 +68,11 @@ export default async function RoomPage({ params }: PageProps)
       </div>
 
       <div className="mt-10 h-64 border-2 border-dashed border-slate-700 flex items-center justify-center rounded-xl">
-        <p className="text-slate-500 italic">
-          Code Editor coming in Week 2...
-        </p>
+        <div className="text-slate-500 italic">
+         <CodeEditor language="javascript" />
+
+        
+        </div>
       </div>
     </div>
   </div>
