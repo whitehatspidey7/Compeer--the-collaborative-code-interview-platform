@@ -1,47 +1,59 @@
 "use client"
 
 import Editor ,{OnMount} from '@monaco-editor/react';
-import {useRef} from 'react';
-import {io} from 'socket.io-client';
+import {useRef,useEffect} from 'react';
+import {io ,Socket} from 'socket.io-client';
 
-export default function CodeEditor( {language}:{language:string})
+export default function CodeEditor( {language,Slug}:{language:string,Slug:string})
 {
     const editorRef = useRef<any>(null);
-    // 3. Listen for local changes to broadcast
+    const socketRef = useRef<any>(null);
     
-     const socketRef = useRef<any>(null);
-    const HandlerEditorOnMount = (editor:any)=>
-    {
-       
+    
+      
 
-            //initailizing the socket connection
-        socketRef.current= io(process.env.PUBLIC_SOCKET_URL);
+        useEffect(()=>{
+            
+                //initailizing the socket connection
+                socketRef.current= io(process.env.NEXT_PUBLIC_SOCKET_URL);
+                //join the specific room
+                socketRef.current.emit("join-room", { slug: Slug });
 
-        //join the specific room
-        socketRef.current.emit("join-room", { slug: "your-room-slug" });
+            const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL;
+            socketRef.current = io(socketUrl,{
+            transports: ["websocket"]});
 
-        // listen for changes to broadcast
-        editor.onDidChangeModelContent((event: any) => {
-        const code = editor.getValue();
-        socketRef.current.emit("code-change", {
-        slug: "your-room-slug",
-        code: code,
-        });
-    });
+            // 2. JOIN: Tell the server which room we are in
+            socketRef.current.emit("join-room", { slug: Slug });
+                
+            // 3. CLEANUP: Disconnect if the user leaves the page
+            return () => {
+            socketRef.current?.disconnect();
+            };
 
-        // 4. Listen for incoming changes from others
-        socketRef.current.on("receive-code", (newCode: string) => {
+        },[Slug]);
+
+
+        const handleEditorDidMount = (editor: any) => {
+        // Save the editor instance so we can read from it later
+        editorRef.current = editor;
+
+        // 4. RECEIVE: Listen for incoming code from other users
+            socketRef.current?.on("receive-code", (newCode: string) => {
+            // CRITICAL: Only update if the code is actually different to prevent infinite loops
             if (newCode !== editor.getValue()) {
-            // Important: Only update if the code is actually different to avoid loops
-            editor.setValue(newCode);
+                editor.setValue(newCode);
             }
-        });
+            });
+        };
 
-
-        editor.current = editor;
-        // console.log("")
-        editor.focus();
-    };
+        const handleEditorChange = () => {
+    const code = editorRef.current?.getValue();
+    
+    // 5. BROADCAST: Send our keystrokes to the server
+    socketRef.current?.emit("code-change", { slug: Slug, code });
+  };
+    
 
     return (
         <Editor 
@@ -49,7 +61,8 @@ export default function CodeEditor( {language}:{language:string})
         defaultLanguage="javascript"
         defaultValue="// you can write your code here..."
         theme="vs-dark"
-        onMount={HandlerEditorOnMount}
+        onMount={handleEditorDidMount}
+        onChange={handleEditorChange}
         options={{
         fontSize: 14,
         fontFamily: "Fira Code, monospace",

@@ -69,7 +69,7 @@ export default async function RoomPage({ params }: PageProps)
 
       <div className="mt-10 h-64 border-2 border-dashed border-slate-700 flex items-center justify-center rounded-xl">
         <div className="text-slate-500 italic">
-         <CodeEditor language="javascript" />
+         <CodeEditor language="javascript" Slug={room.slug} />
 
         
         </div>
