@@ -1,5 +1,4 @@
 
-
 import {db} from "@/lib/db";
 import { createRoom } from "@/server/room-actions";
 import { notFound } from "next/navigation";
@@ -20,7 +19,7 @@ export default async function Dashboard()
     catch(E)
     {
         console.log(E);
-        throw new Error;
+        throw new Error("Could not find the dummy user in the database.");
     }
     
     if(user==null)

@@ -15,7 +15,7 @@ interface ServerToClientEvents {
 }
 
 const app = express();
-const server = createServer(app);
+const server = createServer(app); //http server
 
 // 2. APPLY THE TYPES TO THE SERVER
 // Now, 'io' and 'socket' know exactly what events exist
@@ -41,6 +41,8 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log( "User disconnected:", socket.id);
   });
+
+
 });
 
 server.listen(3001, () => {
