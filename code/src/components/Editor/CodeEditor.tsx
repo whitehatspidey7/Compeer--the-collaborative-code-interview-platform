@@ -1,111 +1,99 @@
 "use client"
 
-import Editor ,{OnMount} from '@monaco-editor/react';
-import {useRef,useEffect} from 'react';
-import {io ,Socket} from 'socket.io-client';
+import Editor from '@monaco-editor/react';
+import { useRef, useEffect } from 'react';
+import { io, Socket } from 'socket.io-client';
+import * as Y from 'yjs';
+import { MonacoBinding } from 'y-monaco';
 
-export default function CodeEditor( {language,Slug}:{language:string,Slug:string})
-{
+// 1. MATCH THE BACKEND CONTRACT EXACTLY
+interface ServerToClientEvents {
+  "yjs-update": (code: Uint8Array) => void;
+}
+
+interface ClientToServerEvents {
+  "join-room": (data: { slug: string }) => void;
+  "yjs-update": (data: { slug: string; code: Uint8Array }) => void;
+}
+
+export default function CodeEditor({ language, Slug }: { language: string, Slug: string }) {
     const editorRef = useRef<any>(null);
-    const socketRef = useRef<any>(null);
+    const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
     
-    const isReceiving = useRef<boolean>(false); //  this is the lock that wil prevent infinite loop
+    // 2. NEW STATE: Hold the Math Document and the Visual Bridge
+    const ydocRef = useRef<Y.Doc | null>(null);
+    const bindingRef = useRef<MonacoBinding | null>(null);
 
-        useEffect(()=>
-        {
-            
-                // //initailizing the socket connection
-                // socketRef.current= io(process.env.NEXT_PUBLIC_SOCKET_URL);
-                // //join the specific room
-                // socketRef.current.emit("join-room", { slug: Slug });
+    useEffect(() => {
+        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001";
+        const socket = io(socketUrl, { transports: ["websocket"] });
+        socketRef.current = socket;
 
-            // initialize the socket server
-            const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL;
+        // Initialize the local math engine
+        const ydoc = new Y.Doc();
+        ydocRef.current = ydoc;
 
-            socketRef.current = io(socketUrl,{
-            transports: ["websocket"]});
+        socket.emit("join-room", { slug: Slug });
 
-            // 2. JOIN: Tell the server which room we are in
-            socketRef.current.emit("join-room", { slug: Slug });
-            
-            // 3. RECEIVE CODE: 
-            socketRef.current.on('receive-code',(new_code:string) =>
-            {
-                if(editorRef.current)
-                {
-                    if(new_code !== editorRef.current.getValue())
-                    {
-                        isReceiving.current = true; // setting lock
-                        editorRef.current.setValue(new_code);
-                        isReceiving.current = false; // release lock
-                    }
-                }
-                
-            });
+        // 3. RECEIVE FROM NETWORK
+        socket.on('yjs-update', (code) => {
+            // Apply the server's binary math to our local document.
+            // "network" is our tag so Yjs knows not to echo this back!
+            Y.applyUpdate(ydoc, new Uint8Array(code), "network");
+        });
 
-            // 4. CLEANUP: Disconnect if the user leaves the page
-            return () => {
-            socketRef.current?.disconnect();
-            };
-
-        },[Slug]); // when the room changes so does the slug
-
-
-        const handleEditorDidMount = (editor: any) => 
-        {
-            // Save the editor instance so we can read from it later
-            editorRef.current = editor;
-
-            // 4. RECEIVE: Listen for incoming code from other users
-            socketRef.current?.on("receive-code", (newCode: string) => {
-            // CRITICAL: Only update if the code is actually different to prevent infinite loops
-            if (newCode !== editor.getValue()) 
-            {
-                isReceiving.current = true; //setting the lock
-
-                editor.setValue(newCode);
-            
-                isReceiving.current = false; // release the lock
+        // 4. SEND TO NETWORK
+        ydoc.on('update', (update, origin) => {
+            // This replaces your manual 'isReceiving' lock!
+            if (origin !== "network") {
+                socket.emit('yjs-update', { slug: Slug, code: update });
             }
-            });
-        };
+        });
 
-         const handleEditorChange = () =>
-         {
-            const code = editorRef.current?.getValue();
-            
-            if(isReceiving.current) return ; // if the lock is set 
-            
-                // 5. BROADCAST: Send our keystrokes to the server
-            socketRef.current?.emit("code-change", { slug: Slug, code });
+        return () => {
+            socket.off("yjs-update");
+            socket.disconnect();
+            bindingRef.current?.destroy();
+            ydoc.destroy();
         };
-    
+    }, [Slug]); 
+
+    const handleEditorDidMount = (editor: any) => {
+        editorRef.current = editor;
+
+        if (ydocRef.current) {
+            // 5. THE MAGIC BRIDGE
+            // We tell Yjs to create a text field tracking object named "monaco"
+            const ytext = ydocRef.current.getText("monaco");
+            
+            // We bind that invisible math object directly to the visible editor UI
+            bindingRef.current = new MonacoBinding(
+                ytext, 
+                editor.getModel(), 
+                new Set([editor])
+            );
+        }
+    };
 
     return (
-        <Editor 
-        height="500px"
-        defaultLanguage="javascript"
-        defaultValue="// you can write your code here..."
-        theme="vs-dark"
-        onMount={handleEditorDidMount}
-        onChange={handleEditorChange}
-        options={{
-        fontSize: 14,
-        fontFamily: "Fira Code, monospace",
-        minimap: { enabled: false },
-        scrollBeyondLastLine: false,
-        wordWrap: "on",
-        automaticLayout: true,
-        tabSize: 2,
-        formatOnPaste: true,
-        formatOnType: true,
-        cursorBlinking: "smooth",
-        cursorSmoothCaretAnimation: "on",
-        smoothScrolling: true,
-        suggestOnTriggerCharacters: true,
-        quickSuggestions: true,
-        parameterHints: { enabled: true },
-    }}
-      />
+        <div className="w-full h-full rounded-lg overflow-hidden border border-slate-700">
+            <Editor 
+                height="80vh"
+                defaultLanguage={language}
+                theme="vs-dark"
+                onMount={handleEditorDidMount}
+                // Notice: No onChange, no defaultValue, no manual locks.
+                // Yjs completely drives the car now.
+                options={{
+                    fontSize: 14,
+                    fontFamily: "Fira Code, monospace",
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    wordWrap: "on",
+                    automaticLayout: true,
+                    tabSize: 2,
+                }}
+            />
+        </div>
     );
-};
+}
