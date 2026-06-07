@@ -9,6 +9,7 @@ export const authOptions: NextAuthOptions = {
   // 2. PASS YOUR db TO THE ADAPTER
   adapter: PrismaAdapter(db) as any,
   
+  // the identity providers
   providers: [
     GithubProvider({
       clientId: process.env.GITHUB_ID!,
@@ -16,7 +17,9 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   
+  // type of token, session strategy, jwt
   session: { strategy: "jwt" },
+  
   
   callbacks: {
     async session({ session, token }) {
