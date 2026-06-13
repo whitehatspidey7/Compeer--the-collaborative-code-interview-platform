@@ -41,7 +41,7 @@ Sync Layer: Redis Pub/Sub ensuring all distributed backend nodes share a unified
 Execution Layer: A pool of Docker containers that receive code via REST, execute it safely, and return output.
 
 🚀 Getting Started
-Clone the repo: git clone https://github.com/whitehatspidey7/compeer.git
+Clone the repo: git clone https://github.com/whitehatspidey7/Compeer--the-collaborative-code-interview-platform
 
 Install dependencies: npm install
 
